@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway-registration-deployment
+  labels:
+    app: gateway-registration
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gateway-registration
+  template:
+    metadata:
+      labels:
+        app: gateway-registration
+    spec:
+      containers:
+        # Container 1: API Gateway
+        - name: api-gateway
+          image: senghakch/api-gateway:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 4000
+          env:
+            - name: PORT
+              value: "4000"
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: cloud-native-secrets
+                  key: JWT_SECRET
+            - name: REGISTER_SERVICE_HOST
+              value: "localhost"
+            - name: REGISTER_SERVICE_PORT
+              value: "5001"
+            - name: DELETE_SERVICE_HOST
+              value: "delete-student-internal-service"
+            - name: DELETE_SERVICE_PORT
+              value: "5000"
+        # Container 2: Registration Service
+        - name: registration-service
+          image: senghakch/registration-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5001
+          env:
+            - name: PORT
+              value: "5001"
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: cloud-native-secrets
+                  key: MONGO_URI
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: delete-student-deployment
+  labels:
+    app: delete-student
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: delete-student
+  template:
+    metadata:
+      labels:
+        app: delete-student
+    spec:
+      containers:
+        # Container 3: 2nd Microservice (Delete Student)
+        - name: delete-student-service
+          image: senghakch/delete-student-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5000
+          env:
+            - name: PORT
+              value: "5000"
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: cloud-native-secrets
+                  key: MONGO_URI
